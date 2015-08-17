@@ -1,100 +1,69 @@
 'use strict';
-
-/* Controllers */
-
-function AppCtrl($scope, socket) {
-
-  // Socket listeners
-  // ================
-
-  socket.on('init', function (data) {
-    $scope.name = data.name;
-    $scope.users = data.users;
-  });
-
-  socket.on('send:message', function (message) {
-    $scope.messages.push(message);
-  });
-
-  socket.on('change:name', function (data) {
-    changeName(data.oldName, data.newName);
-  });
-
-  socket.on('user:join', function (data) {
-    $scope.messages.push({
-      user: 'chatroom',
-      text: 'User ' + data.name + ' has joined.'
-    });
-    $scope.users.push(data.name);
-  });
-
-  // add a message to the conversation when a user disconnects or leaves the room
-  socket.on('user:left', function (data) {
-    $scope.messages.push({
-      user: 'chatroom',
-      text: 'User ' + data.name + ' has left.'
-    });
-    var i, user;
-    for (i = 0; i < $scope.users.length; i++) {
-      user = $scope.users[i];
-      if (user === data.name) {
-        $scope.users.splice(i, 1);
-        break;
+var id = getURLParameter("id");
+function JoinCtrl($scope) {
+    $scope.customStyle = {};
+    $scope.block="{'background-color': 'red' }"
+    pubnub.subscribe({
+      channel: 'demo_tutorial',
+      callback: function(m) {
+        $scope.$apply( function() {
+          $scope.block = "{'background-color': 'red' }"
+        });
+        console.log(m);
       }
+    });
+
+
+}
+
+function playerCtrl($scope) {
+    var pubnub = PUBNUB.init({
+      publish_key: 'pub-c-0ecaf3c4-bc3a-4e03-94e7-e85e196fdc4c',
+      subscribe_key: 'sub-c-673a62aa-24c9-11e4-a77a-02ee2ddab7fe'
+    });
+  
+    $scope.publish = function() {
+        pubnub.publish({
+            channel: 'demo_tutorial',
+            message: $scope.message
+        });
+        //reset the message text
+        $scope.message.text = "";
     }
-  });
+}
 
-  // Private helpers
-  // ===============
+var initTouchers = function($scope, pubnub) {
+    var mySide = "left";
 
-  var changeName = function (oldName, newName) {
-    // rename user in list of users
-    var i;
-    for (i = 0; i < $scope.users.length; i++) {
-      if ($scope.users[i] === oldName) {
-        $scope.users[i] = newName;
-      }
+    document.ontouchstart = function(e){ 
+      e.preventDefault(); 
+    }
+  
+    var publishAction = function(action) {
+        pubnub.publish({
+            channel: "pongnub" + id,
+            message: action
+        });
     }
 
-    $scope.messages.push({
-      user: 'chatroom',
-      text: 'User ' + oldName + ' is now known as ' + newName + '.'
-    });
-  }
+    var touchHandler = function(eve) {
+      console.log(eve);
+      var target = eve.target.id;
+      var type = eve.type;
+      if (type === "mousedown") type = "touchstart";
+      if (type === "mouseup") type = "touchend";
+      if (type === "mouseleave") type = "touchend";
+      if (type === "mousleave") type = "touchend";
+      var time = eve.time;
 
-  // Methods published to the scope
-  // ==============================
+      publishAction({"target": target, "type": type, side: mySide});
+    }
 
-  $scope.changeName = function () {
-    socket.emit('change:name', {
-      name: $scope.newName
-    }, function (result) {
-      if (!result) {
-        alert('There was an error changing your name');
-      } else {
-        
-        changeName($scope.name, $scope.newName);
-
-        $scope.name = $scope.newName;
-        $scope.newName = '';
-      }
-    });
-  };
-
-  $scope.messages = [];
-
-  $scope.sendMessage = function () {
-    socket.emit('send:message', {
-      message: $scope.message
-    });
-
-    // add the message to our model locally
-    $scope.messages.push({
-      user: $scope.name,
-      text: $scope.message
-    });
-
-    // clear message box
-    $scope.message = '';
-  };
+    document.addEventListener("touchstart", function(e) {touchHandler(e)}, false);
+    document.addEventListener("touchend", function(e) {touchHandler(e);}, false);
+    document.addEventListener("touchleave", function(e) {touchHandler(e);}, false);
+    document.addEventListener("touchcancel", function(e) {touchHandler(e);}, false);
+    document.addEventListener("mousedown", function(e) {touchHandler(e);}, false);
+    document.addEventListener("mouseup", function(e) {touchHandler(e);}, false);
+    document.addEventListener("mouseleave", function(e) {touchHandler(e);}, false);   
 }

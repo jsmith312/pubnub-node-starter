@@ -1,34 +1,50 @@
 extends layout
 
 block body
-  h1 Angular Socket.io IM Demo App
-  div(ng-controller='AppCtrl')
-    .col
-      h3 Messages
-      .overflowable
-        p(ng-repeat='message in messages',
-          ng-class='{alert: message.user == "chatroom"}') {{message.user}}: {{message.text}}
+  //div(class="title")
+  //  h1 chat Soup
+  div(id="qrcode")
+  div(ng-controller="JoinCtrl")
+    div(id="block" ng-style="block")
 
-    .col
-      h3 Users
-      .overflowable
-        p(ng-repeat='user in users') {{user}}
-
-    .clr
-      form(ng-submit='sendMessage()')
-        | Message: 
-        input(size='60', ng-model='message')
-        input(type='submit', value='Send')
-
-    .clr
-      h3 Change your name
-      p Your current user name is {{name}}
-      form(ng-submit='changeName()')
-        input(ng-model='newName')
-        input(type='submit', value='Change Name')
-
+  script(src='http://code.jquery.com/jquery-2.1.1.min.js')
+  script(src='http://cdn.pubnub.com/pubnub.min.js')
   script(src='js/lib/angular/angular.js')
+  script(src='js/lib/pubnub-angular.js')
+  script(src='js/lib/rebound.js')
+  script(src='https://rawgit.com/davidshimjs/qrcodejs/master/qrcode.min.js')
   script(src='/socket.io/socket.io.js')
+  script(src='js/lib/util.js')
+  script(type='text/javascript').
+    var rand = Math.floor(Math.random()*10000); 
+
+    var pubnub = PUBNUB.init({
+      publish_key: 'pub-c-0ecaf3c4-bc3a-4e03-94e7-e85e196fdc4c',
+      subscribe_key: 'sub-c-673a62aa-24c9-11e4-a77a-02ee2ddab7fe'
+    });
+
+    var chan = "pongnub" + rand;
+
+    var z = setInterval(function() { 
+        pubnub.here_now({
+          channel: chan,
+          callback: function(m) {
+            if (m.occupancy) {
+              if ($("#game").attr('src') !== ("game.jade?id=" + rand)) $("#game").attr("src", "game.jade?id=" + rand);
+            }
+          }
+        });
+    }, 1000);
+
+      $("#controlLink").attr("href", "controller?id=" + rand);
+
+    new QRCode(document.getElementById("qrcode"), { 
+      text: "192.168.0.15:3000/partials/controller?id=" + rand, 
+      width: 164,
+      height: 164,
+      colorDark: "#444",
+      colorLight: "#ffffff"
+    });
   script(src='js/app.js')
   script(src='js/services.js')
   script(src='js/controllers.js')
